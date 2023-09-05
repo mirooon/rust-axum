@@ -1,7 +1,14 @@
-use crate::{log::log_request, model::ModelController};
+mod config;
+mod ctx;
+mod error;
+mod log;
+mod model;
+mod web;
 
 pub use self::error::{Error, Result};
+pub use config::config;
 
+use crate::{log::log_request, model::ModelController};
 use std::net::SocketAddr;
 
 use axum::{
@@ -15,18 +22,27 @@ use axum::{
 use ctx::Ctx;
 use serde::Deserialize;
 use serde_json::json;
-use tower_cookies::{service, CookieManagerLayer};
+use tower_cookies::CookieManagerLayer;
 use tower_http::services::ServeDir;
+use tracing::info;
+use tracing_subscriber::EnvFilter;
 use uuid::Uuid;
 
-mod ctx;
-mod error;
-mod log;
-mod model;
-mod web;
+pub mod _dev_utils;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    info!("{:<12} - main", "FOR-DEV-ONLY");
+
+    tracing_subscriber::fmt()
+        .without_time()
+        .with_target(false)
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
+
+    // for dev only
+
+    _dev_utils::init_dev().await;
     let mc = ModelController::new().await?;
 
     let routes_apis = web::routes_tickets::routes(mc.clone())
@@ -46,7 +62,7 @@ async fn main() -> Result<()> {
 
     // region: --- Start Server
     let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
-    println!("=>> LISTNINEG on {addr}\n");
+    info!("=>> LISTNINEG on {addr}\n");
     axum::Server::bind(&addr)
         .serve(routes_all.into_make_service())
         .await
@@ -62,7 +78,6 @@ async fn main_response_mapper(
     req_method: Method,
     res: Response,
 ) -> Response {
-    println!("->> {:<12} - main_response_mapper", "RES_MAPPER");
     let uuid = Uuid::new_v4();
 
     // -- Get the eventual response error.
@@ -80,8 +95,6 @@ async fn main_response_mapper(
                 }
             });
 
-            println!("    ->> client_error_body: {client_error_body}");
-
             // Build the new response from the client_error_body
             (*status_code, Json(client_error_body)).into_response()
         });
@@ -91,7 +104,6 @@ async fn main_response_mapper(
     // TODO: Need to hander if log_request fail (but should not fail request)
     let _ = log_request(uuid, req_method, uri, ctx, service_error, client_error).await;
 
-    println!();
     error_response.unwrap_or(res)
 }
 

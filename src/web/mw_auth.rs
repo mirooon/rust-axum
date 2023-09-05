@@ -6,7 +6,6 @@ use async_trait::async_trait;
 use axum::extract::FromRequestParts;
 use axum::extract::State;
 use axum::http::request::Parts;
-use axum::RequestPartsExt;
 use axum::{http::Request, middleware::Next, response::Response};
 use lazy_regex::regex_captures;
 use tower_cookies::Cookie;
