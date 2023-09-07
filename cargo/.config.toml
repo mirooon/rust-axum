@@ -1,4 +1,10 @@
 [env]
 
+# SECRETS
+
+SERVICE_DB_URL="postgres://app_user:dev_only_pwd@localhost/app_db"
+
+#VARS
+
 RUST_LOG="rust_axum=debug"
 SERVICE_WEB_FOLDER="web-folder/"

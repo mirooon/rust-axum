@@ -2,20 +2,15 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde::Serialize;
 
+use crate::model;
+
 pub type Result<T> = core::result::Result<T, Error>;
 
-#[derive(Clone, Debug, Serialize, strum_macros::AsRefStr)]
+#[derive(Debug, Serialize, strum_macros::AsRefStr)]
 #[serde(tag = "type", content = "data")]
 pub enum Error {
     ConfigMissingEnv(&'static str),
-    LoginFail,
-
-    // auth errors
-    AuthFailedNoAuthTokenCookie,
-    AuthFailedTokenWrongFormat,
-    AuthFailedCtxNotInRequestExt,
-    // model errors
-    TicketDeleteFailIdNotFound { id: u64 },
+    Model(model::Error),
 }
 
 impl IntoResponse for Error {
@@ -32,16 +27,6 @@ impl Error {
     pub fn client_status_and_error(&self) -> (StatusCode, ClientError) {
         #[allow(unreachable_code)]
         match self {
-            Self::LoginFail => (StatusCode::FORBIDDEN, ClientError::LOGIN_FAIL),
-
-            // -- Auth.
-            Self::AuthFailedNoAuthTokenCookie
-            | Self::AuthFailedTokenWrongFormat
-            | Self::AuthFailedCtxNotInRequestExt => (StatusCode::FORBIDDEN, ClientError::NO_AUTH),
-
-            Self::TicketDeleteFailIdNotFound { .. } => {
-                (StatusCode::BAD_REQUEST, ClientError::INVALID_PARAMS)
-            }
             _ => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ClientError::SERVICE_ERROR,
@@ -57,4 +42,10 @@ pub enum ClientError {
     NO_AUTH,
     INVALID_PARAMS,
     SERVICE_ERROR,
+}
+
+impl From<model::Error> for Error {
+    fn from(val: model::Error) -> Self {
+        Self::Model(val)
+    }
 }

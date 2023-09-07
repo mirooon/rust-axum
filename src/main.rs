@@ -1,14 +1,13 @@
 mod config;
 mod ctx;
 mod error;
-mod log;
 mod model;
 mod web;
 
 pub use self::error::{Error, Result};
 pub use config::config;
 
-use crate::{log::log_request, model::ModelController};
+use crate::model::ModelManager;
 use std::net::SocketAddr;
 
 use axum::{
@@ -43,20 +42,10 @@ async fn main() -> Result<()> {
     // for dev only
 
     _dev_utils::init_dev().await;
-    let mc = ModelController::new().await?;
-
-    let routes_apis = web::routes_tickets::routes(mc.clone())
-        .route_layer(middleware::from_fn(web::mw_auth::mw_require_auth));
+    let mc = ModelManager::new().await?;
 
     let routes_all = Router::new()
         .merge(routes_hello())
-        .merge(web::routes_login::routes())
-        .nest("/api", routes_apis)
-        .layer(middleware::map_response(main_response_mapper))
-        .layer(middleware::from_fn_with_state(
-            mc.clone(),
-            web::mw_auth::mw_ctx_resolver,
-        ))
         .layer(CookieManagerLayer::new())
         .fallback_service(routes_static());
 
@@ -102,7 +91,7 @@ async fn main_response_mapper(
     // Build and log the server log line.
     let client_error = client_status_error.unzip().1;
     // TODO: Need to hander if log_request fail (but should not fail request)
-    let _ = log_request(uuid, req_method, uri, ctx, service_error, client_error).await;
+    // let _ = log_request(uuid, req_method, uri, ctx, service_error, client_error).await;
 
     error_response.unwrap_or(res)
 }

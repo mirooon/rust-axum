@@ -1,5 +1,6 @@
 cargo watch -q -c -w src/ -x "run"
 cargo watch -q -c -w tests/ -x "test -q quick_dev -- --nocapture"
+cargo watch -q -c -w src/ -x "test -- --nocapture"
 
 docker run --rm --name pg -p 5432:5432 -e POSTGRES_PASSWORD=welcome postgres:15
 docker exec -it -u postgres pg psql
