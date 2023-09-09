@@ -18,7 +18,7 @@ pub struct TaskForCreate {
     pub title: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Fields)]
 pub struct TaskForUpdate {
     pub title: Option<String>,
 }
@@ -36,6 +36,10 @@ impl TaskBmc {
 
     pub async fn get(_ctx: &Ctx, mm: &ModelManager, id: i64) -> Result<Task> {
         base::get::<Self, _>(_ctx, mm, id).await
+    }
+
+    pub async fn update(_ctx: &Ctx, mm: &ModelManager, id: i64, task: TaskForUpdate) -> Result<()> {
+        base::update::<Self, _>(_ctx, mm, id, task).await
     }
 
     pub async fn delete(_ctx: &Ctx, mm: &ModelManager, id: i64) -> Result<()> {
