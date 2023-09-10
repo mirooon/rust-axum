@@ -1,5 +1,5 @@
 use crate::ctx::Ctx;
-use crate::model::{Error, Result};
+use crate::model::Result;
 use serde::{Deserialize, Serialize};
 use sqlb::Fields;
 use sqlx::FromRow;

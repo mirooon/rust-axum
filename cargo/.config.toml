@@ -3,7 +3,9 @@
 # SECRETS
 
 SERVICE_DB_URL="postgres://app_user:dev_only_pwd@localhost/app_db"
-
+SERVICE_PWD_KEY="nuYhdpWzHRCl6pMv5h8XHnuLiwzJ__7rk30xykwrtRVfTcWrWrqCLbOOGDXRxZl4GlXf8jMpNLl6ptwzNlaYMw"
+SERVICE_TOKEN_KEY="62gWqBDCXIn6qj0VSaTeyoXpnBGsFOYHaJom7Emh7vHvG84d0I2Oxsc_kbdu_CMW9MO9pkERfy-e0GUNbJmLbQ"
+SERVICE_TOKEN_DURATION_SEC="1800" # 30min
 #VARS
 
 RUST_LOG="rust_axum=debug"

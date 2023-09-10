@@ -15,5 +15,5 @@ pub async fn new_db_pool() -> Result<Db> {
         .acquire_timeout(Duration::from_millis(500))
         .connect(&config().DB_URL)
         .await
-        .map_err(|ex| Error::FailedToCreatePool((ex.to_string())))
+        .map_err(|ex| Error::FailedToCreatePool(ex.to_string()))
 }

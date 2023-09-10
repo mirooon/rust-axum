@@ -1,31 +1,36 @@
 mod config;
+mod crypt;
 mod ctx;
 mod error;
 mod model;
+mod utils;
 mod web;
 
 pub use self::error::{Error, Result};
 pub use config::config;
 
-use crate::model::ModelManager;
+use crate::{
+    model::ModelManager,
+    web::{
+        mw_auth::{mw_ctx_require, mw_ctx_resolve},
+        mw_res_map::mw_response_map,
+    },
+};
 use std::net::SocketAddr;
 
+use crate::web::routes_login;
 use axum::{
     extract::{Path, Query},
-    http::{Method, Uri},
     middleware,
-    response::{Html, IntoResponse, Response},
+    response::{Html, IntoResponse},
     routing::{get, get_service},
-    Json, Router,
+    Router,
 };
-use ctx::Ctx;
 use serde::Deserialize;
-use serde_json::json;
 use tower_cookies::CookieManagerLayer;
 use tower_http::services::ServeDir;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
-use uuid::Uuid;
 
 pub mod _dev_utils;
 
@@ -42,10 +47,17 @@ async fn main() -> Result<()> {
     // for dev only
 
     _dev_utils::init_dev().await;
-    let mc = ModelManager::new().await?;
+    let mm = ModelManager::new().await?;
+
+    let routes_hello = Router::new()
+        .route("/hello", get(|| async { Html("Hello World") }))
+        .route_layer(middleware::from_fn(mw_ctx_require));
 
     let routes_all = Router::new()
-        .merge(routes_hello())
+        .merge(routes_login::routes(mm.clone()))
+        .merge(routes_hello)
+        .layer(middleware::map_response(mw_response_map))
+        .layer(middleware::from_fn_with_state(mm.clone(), mw_ctx_resolve))
         .layer(CookieManagerLayer::new())
         .fallback_service(routes_static());
 
@@ -61,41 +73,6 @@ async fn main() -> Result<()> {
     // endregion: --- Start Server
 }
 
-async fn main_response_mapper(
-    ctx: Option<Ctx>,
-    uri: Uri,
-    req_method: Method,
-    res: Response,
-) -> Response {
-    let uuid = Uuid::new_v4();
-
-    // -- Get the eventual response error.
-    let service_error = res.extensions().get::<Error>();
-    let client_status_error = service_error.map(|se| se.client_status_and_error());
-
-    // -- If client error, build the new reponse.
-    let error_response = client_status_error
-        .as_ref()
-        .map(|(status_code, client_error)| {
-            let client_error_body = json!({
-                "error": {
-                    "type": client_error.as_ref(),
-                    "req_uuid": uuid.to_string(),
-                }
-            });
-
-            // Build the new response from the client_error_body
-            (*status_code, Json(client_error_body)).into_response()
-        });
-
-    // Build and log the server log line.
-    let client_error = client_status_error.unzip().1;
-    // TODO: Need to hander if log_request fail (but should not fail request)
-    // let _ = log_request(uuid, req_method, uri, ctx, service_error, client_error).await;
-
-    error_response.unwrap_or(res)
-}
-
 fn routes_static() -> Router {
     Router::new().nest_service("/", get_service(ServeDir::new("./")))
 }
@@ -103,9 +80,7 @@ fn routes_static() -> Router {
 // region: --- Handler Hello
 
 fn routes_hello() -> Router {
-    Router::new()
-        .route("/hello", get(handler_hello))
-        .route("/hello2/:name", get(handler_hello2))
+    Router::new().route("/hello", get(handler_hello))
 }
 
 #[derive(Debug, Deserialize)]
