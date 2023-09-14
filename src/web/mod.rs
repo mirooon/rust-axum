@@ -2,6 +2,7 @@ mod error;
 pub mod mw_auth;
 pub mod mw_res_map;
 pub mod routes_login;
+pub mod rpc;
 
 use tower_cookies::{Cookie, Cookies};
 
@@ -23,8 +24,8 @@ pub fn set_token_cookie(cookies: &Cookies, user: &str, salt: &str) -> Result<()>
 }
 
 pub fn remove_token_cookie(cookies: &Cookies) -> Result<()> {
-    let cookie = Cookie::named(AUTH_TOKEN);
-    cookies.set_path("/");
+    let mut cookie = Cookie::named(AUTH_TOKEN);
+    cookie.set_path("/");
     cookies.remove(cookie);
     Ok(())
 }
